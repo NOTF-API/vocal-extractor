@@ -1,0 +1,25 @@
+# vocal-extractor 依赖说明
+#
+# 实际安装请运行 install.ps1 —— 它会自动检测硬件、选择正确的 CUDA 版
+# PyTorch，并修复各平台已知的依赖坑。直接 pip install 本文件不保证可用。
+#
+# 下面仅供手动安装或 CI 参考。
+#
+# 注意：torch 不在此列出，必须从 PyTorch 官方源单独安装。
+# PyPI 上 torch 2.14+ 只发布 CPU 构建，CUDA 版需指定：
+#   pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
+#
+# onnxruntime-gpu 的版本必须与 torch 的 CUDA 主版本一致：
+#   torch cu118 -> onnxruntime-gpu==1.18.1
+#   torch cu126/cu128 -> onnxruntime-gpu==1.22.0
+#   （1.23+ 是 CUDA 13 构建，会报 cublas64_13.dll 缺失）
+
+audio-separator[gpu]>=0.47.0
+
+# Windows 专用：soundfile 0.13+ 不再捆绑 libsndfile DLL，需锁定 0.12.1
+# soundfile==0.12.1 ; sys_platform == "win32"
+
+# 系统依赖（非 pip）：ffmpeg
+#   Windows: winget install Gyan.FFmpeg
+#   macOS  : brew install ffmpeg
+#   Debian : sudo apt install ffmpeg

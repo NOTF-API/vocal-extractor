@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # 轻量检查：不需要 GPU，秒级完成，适合每次提交都跑
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Python 语法检查
+        run: python -m compileall -q vocal_extractor.py download_model.py analyze.py check_split.py
+
+      - name: CLI 帮助可正常输出
+        run: python vocal_extractor.py --help
+
+      - name: 模型列表可正常输出
+        run: python download_model.py --list
+
+      - name: PowerShell 脚本语法检查（Linux 无 pwsh 则跳过）
+        continue-on-error: true
+        run: |
+          command -v pwsh >/dev/null 2>&1 || { echo "pwsh 不可用，跳过"; exit 0; }
+          pwsh -NoProfile -Command '
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              "install.ps1", [ref]$null, [ref]$errors)
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              "fetch-wheels.ps1", [ref]$null, [ref]$errors)
+            if ($errors.Count) { $errors | ForEach-Object { Write-Host $_.Message }; exit 1 }
+            Write-Host "PowerShell 脚本语法正确"
+          '
+
+  # 完整安装验证：CPU 版即可，验证依赖能装上且模块可导入
+  install:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 安装依赖（CPU 版）
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install "audio-separator[cpu]"
+
+      - name: 核心模块可导入
+        run: |
+          python -c "import audio_separator, torch, soundfile, librosa; print('导入正常', torch.__version__)"
+
+      - name: CLI 可运行
+        run: python vocal_extractor.py --help

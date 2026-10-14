@@ -1,0 +1,22 @@
+# 批处理必须用 CRLF，否则 cmd.exe 在标签/goto 处会出错。
+# 强制 LF 存储 + CRLF 检出，保证任何平台 checkout 后都能正常运行。
+*.bat text eol=crlf
+
+# PowerShell 脚本同样用 CRLF（Windows PowerShell 5.1 的历史兼容问题）
+*.ps1 text eol=crlf
+
+# Python / 文档 / 配置统一 LF
+*.py text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+.gitignore text eol=lf
+.gitattributes text eol=lf
+
+# 二进制资源不做换行转换
+*.wav binary
+*.flac binary
+*.mp3 binary
+*.ckpt binary
+*.onnx binary
+*.pth binary
