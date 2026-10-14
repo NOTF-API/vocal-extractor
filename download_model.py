@@ -70,10 +70,12 @@ def main() -> int:
     print(f"模型缓存目录: {args.model_dir.resolve()}")
     print(f"正在下载: {args.model}\n")
 
+    import logging
+
+    # Separator 的 log_level 要的是 logging 级别整数，不是字符串
     separator = Separator(
         model_file_dir=str(args.model_dir),
-        output_dir=str(args.model_dir),
-        log_level="info",
+        log_level=logging.INFO,
     )
     separator.download_model_files(args.model)
 

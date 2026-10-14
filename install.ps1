@@ -146,10 +146,12 @@ function Install-TorchFast {
     }
 
     # 从 PyTorch 官方索引解析出与当前 Python / 架构匹配的 wheel 直链
+    # 注意平台标签是 win_amd64 / win32，不是 amd64
     $pyTag = (& $VenvPy -c "import sys;print('cp%d%d' % sys.version_info[:2])").Trim()
-    $arch = if ([Environment]::Is64BitOperatingSystem) { "amd64" } else { "win32" }
+    $arch = if ([Environment]::Is64BitOperatingSystem) { "win_amd64" } else { "win32" }
     $fileName = "torch-$Version+$Tag-$pyTag-$pyTag-$arch.whl"
     $url = "https://download.pytorch.org/whl/$Tag/$fileName"
+    Write-Host "    wheel: $fileName" -ForegroundColor DarkGray
 
     # 用 Range GET 探测文件大小。
     #   不能用 HEAD —— download.pytorch.org 对 HEAD 返回 403。
@@ -168,9 +170,12 @@ function Install-TorchFast {
             $resp.Close()
             if ($cr -match "/(\d+)$") { $size = [int64]$Matches[1] }
         } catch {
+            $why = $_.Exception.Message
             if ($try -lt 3) {
-                Write-Warn2 "探测文件大小失败（第 $try 次），重试..."
+                Write-Warn2 "探测文件大小失败（第 $try/3 次）: $why"
                 Start-Sleep -Seconds (2 * $try)
+            } else {
+                Write-Warn2 "探测文件大小失败（已重试 3 次）: $why"
             }
         }
     }
@@ -351,29 +356,7 @@ if (Get-Command ffmpeg -EA SilentlyContinue) {
 
 # --- 9. 验证 ---
 Write-Step "验证安装"
-& $VenvPy -c @"
-import torch
-print(f'    torch        {torch.__version__}')
-print(f'    CUDA 可用    {torch.cuda.is_available()}')
-if torch.cuda.is_available():
-    print(f'    显卡         {torch.cuda.get_device_name(0)}')
-try:
-    import soundfile as sf
-    print(f'    soundfile    {sf.__version__} (libsndfile {sf.__libsndfile_version__})')
-except Exception as e:
-    print(f'    soundfile    失败: {e}')
-try:
-    import onnxruntime as ort
-    print(f'    onnxrt       {ort.__version__}')
-    print(f'    providers    {", ".join(ort.get_available_providers())}')
-except Exception as e:
-    print(f'    onnxrt       失败: {e}')
-try:
-    from importlib.metadata import version as _v
-    print(f'    audio-sep    {_v("audio-separator")}')
-except Exception:
-    print('    audio-sep    已安装')
-"@
+& $VenvPy (Join-Path $ProjectRoot "verify_install.py")
 
 if ($LASTEXITCODE -ne 0) {
     Write-Err "验证未通过，请查看上方输出"
