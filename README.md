@@ -36,7 +36,7 @@ Demucs v4（Meta）名气最大，但它已经不是当前最优解了。人声�
 ### Windows
 
 ```powershell
-git clone <this-repo>
+git clone https://github.com/NOTF-API/vocal-extractor.git
 cd vocal-extractor
 .\install.ps1
 ```
